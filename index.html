@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
-<meta name="description" content="Ago — one-tap tracker for how long it's been since you last did anything.">
+<meta name="theme-color" content="#171412" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbf4ea" media="(prefers-color-scheme: light)">
+<meta name="description" content="Ago — a one-tap tracker for the things you do sometimes. No streaks, no account, no cloud.">
 <title>Ago — how long has it been?</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -14,18 +14,25 @@
 <meta name="apple-mobile-web-app-title" content="Ago">
 <style>
   :root {
-    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #6b7280;
-    --line: #e5e7eb; --accent: #2563eb; --accent-text: #ffffff;
-    --fresh: #16a34a; --aging: #d97706; --overdue: #dc2626;
-    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.05);
+    /* Light contrast: text/bg 15.47, muted/bg 5.42, accent text/accent 5.78, fresh/card 5.04, aging/card 6.38, overdue/card 5.49. */
+    --bg: #fbf4ea; --card: #fffaf4; --text: #241b16; --muted: #6d625a;
+    --line: #e7d8c8; --accent: #a8432b; --accent-text: #fffaf4;
+    --fresh: #2f7a4f; --aging: #815300; --overdue: #b83a2e;
+    /* Toast is inverted (bg = --text), so its action uses the dark palette's accent: 8.94 on #241b16. */
+    --toast-action: #ffb07f;
+    --shadow: 0 1px 3px rgba(64,42,28,.08), 0 8px 24px rgba(64,42,28,.08);
     --radius: 16px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f1115; --card: #191c23; --text: #eceef2; --muted: #9aa1ad;
-      --line: #2a2e38; --accent: #3b82f6; --accent-text: #ffffff;
-      --fresh: #22c55e; --aging: #f59e0b; --overdue: #ef4444;
-      --shadow: 0 1px 3px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+      /* Dark contrast: text/bg 16.00, muted/bg 9.46, accent text/accent 9.58, fresh/card 8.73, aging/card 9.50, overdue/card 7.14. */
+      --bg: #171412; --card: #231f1b; --text: #f7eee6; --muted: #c6b8aa;
+      --line: #3b3029; --accent: #ffb07f; --accent-text: #2a1710;
+      --fresh: #72d09a; --aging: #f2bd58; --overdue: #ff8a78;
+      /* Toast inverted here too (bg = --text = cream), so its action uses the light palette's accent: 5.61 on #f7eee6. */
+      --toast-action: #a8432b;
+      --shadow: 0 1px 3px rgba(0,0,0,.42), 0 8px 24px rgba(0,0,0,.32);
+      --radius: 16px;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -39,7 +46,7 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 18px 20px 8px; max-width: 560px; margin: 0 auto;
   }
-  header h1 { font-size: 26px; letter-spacing: -0.5px; }
+  header h1 { font-size: 26px; letter-spacing: 0; }
   header h1 span { color: var(--accent); }
   .iconbtn {
     background: none; border: none; color: var(--muted); font-size: 20px;
@@ -48,12 +55,21 @@
   .iconbtn:hover { background: var(--line); color: var(--text); }
   main { max-width: 560px; margin: 0 auto; padding: 6px 16px 120px; }
   .empty {
-    text-align: center; color: var(--muted); padding: 60px 24px; line-height: 1.6;
+    text-align: center; color: var(--muted); padding: 52px 18px 44px; line-height: 1.55;
   }
   .empty .big { font-size: 44px; margin-bottom: 12px; }
+  .empty strong { display: block; color: var(--text); font-size: 28px; line-height: 1.12; margin-bottom: 10px; }
+  .empty p { margin: 0 auto; max-width: 340px; }
+  .empty .privacy-note { margin-top: 14px; font-size: 13px; }
+  .empty-cta {
+    border: none; background: var(--accent); color: var(--accent-text); cursor: pointer;
+    font-size: 17px; font-weight: 800; padding: 14px 22px; border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(168,67,43,.22); margin-top: 22px; min-height: 50px;
+  }
+  .empty-cta:active { transform: scale(.97); }
   .card {
     background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
-    padding: 14px 16px; margin: 10px 0; display: flex; align-items: center; gap: 12px;
+    padding: 15px 16px; margin: 10px 0; display: flex; align-items: center; gap: 12px;
     border-left: 5px solid var(--line); transition: border-color .3s;
   }
   .card.fresh   { border-left-color: var(--fresh); }
@@ -61,9 +77,9 @@
   .card.overdue { border-left-color: var(--overdue); }
   .card .emoji { font-size: 30px; width: 40px; text-align: center; flex-shrink: 0; }
   .card .info { flex: 1; min-width: 0; cursor: pointer; }
-  .card .name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card .ago { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
-  .card .ago.overdue-t { color: var(--overdue); font-weight: 600; }
+  .card .name { color: var(--muted); font-weight: 650; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+  .card .ago { color: var(--text); font-size: 20px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .card .ago.overdue-t { color: var(--overdue); font-size: 22px; }
   .card .ago.aging-t { color: var(--aging); }
   .didit {
     flex-shrink: 0; border: none; background: var(--accent); color: var(--accent-text);
@@ -75,7 +91,7 @@
     position: fixed; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom));
     width: 60px; height: 60px; border-radius: 50%; border: none;
     background: var(--accent); color: var(--accent-text); font-size: 30px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer; line-height: 1;
+    box-shadow: 0 6px 20px rgba(64,42,28,.28); cursor: pointer; line-height: 1;
   }
   .fab:active { transform: scale(.92); }
   dialog {
@@ -98,6 +114,7 @@
     background: var(--bg); cursor: pointer;
   }
   .emoji-pick.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--bg)); }
+  .dialog-note { color: var(--muted); font-size: 13px; margin-top: 14px; line-height: 1.45; }
   .dlg-actions { display: flex; gap: 10px; margin-top: 22px; }
   .btn {
     flex: 1; padding: 12px; border-radius: 12px; border: none; font-size: 15px;
@@ -117,7 +134,7 @@
     z-index: 50; white-space: nowrap;
   }
   .toast.show { opacity: 1; pointer-events: auto; }
-  .toast button { background: none; border: none; color: var(--accent); font-weight: 800; font-size: 14px; cursor: pointer; }
+  .toast button { background: none; border: none; color: var(--toast-action); font-weight: 800; font-size: 14px; cursor: pointer; }
   .menu-sheet { padding: 10px 0; }
   .menu-sheet button {
     display: block; width: 100%; text-align: left; padding: 13px 22px; background: none;
@@ -131,48 +148,50 @@
   }
   .footer-note { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; line-height: 1.7; }
   .footer-note a { color: var(--accent); text-decoration: none; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 </style>
 </head>
 <body>
 <header>
   <h1>Ago<span>.</span></h1>
-  <button class="iconbtn" id="menuBtn" aria-label="Menu">⋯</button>
+  <button class="iconbtn" id="menuBtn" aria-label="Open menu">⋯</button>
 </header>
 <main>
   <div id="list"></div>
   <div class="empty" id="empty" hidden>
     <div class="big">⏳</div>
-    <strong>How long has it been?</strong><br>
-    Track anything you do <em>sometimes</em> — water the plants,<br>
-    change the sheets, call Mom, swap the filter.<br><br>
-    Tap <strong>+</strong> to add your first thing.
+    <strong>How long has it been?</strong>
+    <p>For the little things that slip: sheets, plants, filters, phone calls. No streaks. No guilt.</p>
+    <p class="privacy-note">Private by default: no account, no cloud, no tracking.</p>
+    <button class="empty-cta" id="emptyAddBtn" type="button">+ Add your first thing</button>
   </div>
   <div class="footer-note" id="footNote" hidden>
-    Tap a card for history · data never leaves this device
+    Tap a card for past taps · saved only on this device
   </div>
 </main>
 
-<button class="fab" id="addBtn" aria-label="Add item">+</button>
+<button class="fab" id="addBtn" aria-label="Add something">+</button>
 
-<div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn">UNDO</button></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
 
 <!-- Add / Edit dialog -->
 <dialog id="editDlg">
-  <h2 id="dlgTitle">New thing to track</h2>
-  <label for="nameIn">What is it?</label>
+  <h2 id="dlgTitle">Add a sometimes thing</h2>
+  <label for="nameIn">What do you want to remember?</label>
   <input type="text" id="nameIn" maxlength="60" placeholder="e.g. Watered the plants" autocomplete="off">
   <div class="suggest-grid" id="suggests"></div>
-  <label>Icon</label>
+  <label>Pick a little icon</label>
   <div class="emoji-row" id="emojiRow"></div>
-  <label for="threshNum">Remind-me threshold (turns red after…)</label>
+  <label for="threshNum">Turn red after…</label>
   <div class="row">
-    <input type="number" id="threshNum" min="0" step="1" placeholder="none">
+    <input type="number" id="threshNum" min="0" step="1" placeholder="no nudge">
     <select id="threshUnit">
       <option value="3600000">hours</option>
       <option value="86400000" selected>days</option>
       <option value="604800000">weeks</option>
     </select>
   </div>
+  <p class="dialog-note">Saved only on this device.</p>
   <div class="dlg-actions">
     <button class="btn ghost" id="cancelBtn">Cancel</button>
     <button class="btn primary" id="saveBtn">Save</button>
@@ -183,7 +202,7 @@
 <dialog id="detailDlg">
   <h2 id="detTitle"></h2>
   <div style="color:var(--muted);font-size:14px" id="detSub"></div>
-  <label>History</label>
+  <label>Past taps</label>
   <ul class="history" id="histList"></ul>
   <div class="dlg-actions">
     <button class="btn danger" id="delBtn">Delete</button>
@@ -195,8 +214,8 @@
 <!-- Menu dialog -->
 <dialog id="menuDlg" class="menu-sheet-dlg">
   <div class="menu-sheet">
-    <button id="exportBtn">⬇️ &nbsp;Export data (JSON)</button>
-    <button id="importBtn">⬆️ &nbsp;Import data</button>
+    <button id="exportBtn">⬇️ &nbsp;Save a backup</button>
+    <button id="importBtn">⬆️ &nbsp;Bring in a backup</button>
     <button id="aboutBtn">ℹ️ &nbsp;About Ago</button>
     <button id="closeMenuBtn" style="color:var(--muted)">Close</button>
   </div>
@@ -269,11 +288,11 @@ function render() {
     const card = document.createElement('div');
     card.className = 'card ' + st;
     card.dataset.id = it.id;
-    const agoTxt = it.last ? fmtAgo(Date.now() - it.last) : 'never — tap Did it!';
+    const agoTxt = it.last ? fmtAgo(Date.now() - it.last) : 'not yet — tap Did it!';
     const agoCls = st === 'overdue' ? 'ago overdue-t' : st === 'aging' ? 'ago aging-t' : 'ago';
     card.innerHTML =
       '<div class="emoji">' + it.emoji + '</div>' +
-      '<div class="info"><div class="name"></div><div class="' + agoCls + '" data-ago></div></div>' +
+      '<div class="info"><div class="' + agoCls + '" data-ago></div><div class="name"></div></div>' +
       '<button class="didit">Did it ✓</button>';
     card.querySelector('.name').textContent = it.name;
     card.querySelector('[data-ago]').textContent = agoTxt;
@@ -300,7 +319,7 @@ function markDone(id) {
   it.history.unshift(it.last);
   if (it.history.length > 100) it.history.length = 100;
   save(); render();
-  toast('✓ ' + it.name);
+  toast('Done — ' + it.name);
   if (navigator.vibrate) navigator.vibrate(15);
 }
 function snapshot(msg) { undoState = { items: JSON.parse(JSON.stringify(items)), msg }; }
@@ -356,7 +375,7 @@ function buildSuggests() {
 }
 function openEditor(id) {
   editingId = id || null;
-  $('dlgTitle').textContent = id ? 'Edit' : 'New thing to track';
+  $('dlgTitle').textContent = id ? 'Tweak this thing' : 'Add a sometimes thing';
   if (id) {
     const it = items.find(i => i.id === id);
     $('nameIn').value = it.name;
@@ -398,12 +417,12 @@ function openDetail(id) {
   if (!it) return;
   $('detTitle').textContent = it.emoji + ' ' + it.name;
   $('detSub').textContent = it.last
-    ? 'Last done ' + fmtAgo(Date.now() - it.last) + ' · ' + fmtStamp(it.last)
-    : 'Never done yet';
+    ? 'Last did it ' + fmtAgo(Date.now() - it.last) + ' · ' + fmtStamp(it.last)
+    : 'No taps yet';
   const ul = $('histList');
   ul.innerHTML = '';
   const hist = it.history || [];
-  if (!hist.length) ul.innerHTML = '<li>No history yet</li>';
+  if (!hist.length) ul.innerHTML = '<li>No taps yet</li>';
   hist.slice(0, 30).forEach((t, i) => {
     const li = document.createElement('li');
     const gap = i + 1 < hist.length ? fmtAgo(t - hist[i + 1]).replace(' ago','') + ' gap' : '';
@@ -420,7 +439,7 @@ $('delBtn').onclick = () => {
   items = items.filter(i => i.id !== detailId);
   save(); render();
   $('detailDlg').close();
-  toast('Deleted “' + it.name + '”');
+  toast('Removed “' + it.name + '”');
 };
 
 /* ============ menu / export / import ============ */
@@ -449,16 +468,17 @@ $('importFile').onchange = async e => {
     for (const it of incoming) if (it && it.id && it.name) byId.set(it.id, it);
     items = [...byId.values()];
     save(); render();
-    toast('Imported ' + incoming.length + ' items');
-  } catch { toast('Import failed — not an Ago backup'); }
+    toast('Brought in ' + incoming.length + ' things');
+  } catch { toast('That does not look like an Ago backup'); }
   e.target.value = '';
 };
 $('aboutBtn').onclick = () => {
   $('menuDlg').close();
-  alert('Ago v1.0\n\nOne-tap tracker for everything you do "sometimes."\nAll data stays on your device. No account, no cloud, no tracking.\n\nAdd to Home Screen to use it like a native app.');
+  alert('Ago v1.0\n\nFor the things you do sometimes, not every day. No streaks, no guilt — just “how long has it been?”\n\nYour data stays on this device. No account, no cloud, no tracking.\n\nAdd to Home Screen when you want Ago one tap away.');
 };
 
 /* ============ boot ============ */
+$('emptyAddBtn').onclick = () => openEditor(null);
 render();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});

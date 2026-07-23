@@ -1,5 +1,7 @@
 # Ago — "how long has it been?"
 
+**Live: <https://ago-4iw.pages.dev>** — open on your phone and Add to Home Screen.
+
 One-tap tracker for everything you do **sometimes**: water the plants, change the
 sheets, swap the water filter, clean the litter box, call Mom, back up your phone.
 

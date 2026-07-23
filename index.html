@@ -301,12 +301,19 @@ function render() {
     list.appendChild(card);
   }
 }
-/* live tick — update times without full re-render */
+/* live tick — update times and freshness state without full re-render */
 setInterval(() => {
+  let stateChanged = false;
   document.querySelectorAll('.card').forEach(card => {
     const it = items.find(i => i.id === card.dataset.id);
-    if (it && it.last) card.querySelector('[data-ago]').textContent = fmtAgo(Date.now() - it.last);
+    if (!it || !it.last) return;
+    card.querySelector('[data-ago]').textContent = fmtAgo(Date.now() - it.last);
+    const st = stateOf(it);
+    if (!card.classList.contains(st)) stateChanged = true;
   });
+  // a card crossed into aging/overdue — full render to recolor and re-sort,
+  // but never while a dialog is open (would yank the UI out from under the user)
+  if (stateChanged && !document.querySelector('dialog[open]')) render();
 }, 30000);
 
 /* ============ actions ============ */

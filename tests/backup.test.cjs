@@ -126,6 +126,8 @@ test('imported emoji markup stays literal text after import and reload', async t
 test('the repaired app remains usable offline after installation', async t => {
   const { page, context } = await open(t, [item()], 'allow');
   await page.evaluate(() => navigator.serviceWorker.ready);
+  // Navigate after activation so the test does not race first-install takeover.
+  await page.reload();
   await page.waitForFunction(() => navigator.serviceWorker.controller);
   await context.setOffline(true);
   await page.reload();

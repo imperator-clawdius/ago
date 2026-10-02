@@ -35,6 +35,17 @@ python -m http.server 8123
 # open http://localhost:8123
 ```
 
+## Verify locally
+
+The app still has no runtime dependencies or build step. Browser regression tests
+cover backup round-trips, invalid imports, safe text rendering, and offline use:
+
+```sh
+npm ci
+npx playwright install chromium
+npm test
+```
+
 ## Deploy (free)
 
 Any static host. Cloudflare Pages (already in the stack for truetaxstrategies):

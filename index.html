@@ -291,9 +291,10 @@ function render() {
     const agoTxt = it.last ? fmtAgo(Date.now() - it.last) : 'not yet — tap Did it!';
     const agoCls = st === 'overdue' ? 'ago overdue-t' : st === 'aging' ? 'ago aging-t' : 'ago';
     card.innerHTML =
-      '<div class="emoji">' + it.emoji + '</div>' +
+      '<div class="emoji"></div>' +
       '<div class="info"><div class="' + agoCls + '" data-ago></div><div class="name"></div></div>' +
       '<button class="didit">Did it ✓</button>';
+    card.querySelector('.emoji').textContent = it.emoji;
     card.querySelector('.name').textContent = it.name;
     card.querySelector('[data-ago]').textContent = agoTxt;
     card.querySelector('.didit').onclick = e => { e.stopPropagation(); markDone(it.id); };
@@ -462,17 +463,34 @@ $('exportBtn').onclick = () => {
   $('menuDlg').close();
 };
 $('importBtn').onclick = () => { $('menuDlg').close(); $('importFile').click(); };
+function backupItems(data) {
+  const incoming = Array.isArray(data) ? data : data?.items;
+  if (!Array.isArray(incoming)) throw new Error('bad format');
+  const text = value => typeof value === 'string' && value.trim().length > 0;
+  const timestamp = value => typeof value === 'number' && Number.isFinite(value)
+    && value >= 0 && value <= 8640000000000000;
+  // Check every record before replacing existing items. A malformed history
+  // otherwise persists successfully, then breaks both details and "Did it".
+  for (const it of incoming) {
+    if (!it || !text(it.id) || !text(it.name) || typeof it.emoji !== 'string'
+      || !(it.threshold === null || (typeof it.threshold === 'number'
+        && Number.isFinite(it.threshold) && it.threshold > 0))
+      || !(it.last === null || timestamp(it.last))
+      || !Array.isArray(it.history) || !it.history.every(timestamp)) {
+      throw new Error('bad item');
+    }
+  }
+  return incoming;
+}
 $('importFile').onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
   try {
-    const data = JSON.parse(await f.text());
-    const incoming = Array.isArray(data) ? data : data.items;
-    if (!Array.isArray(incoming)) throw new Error('bad format');
+    const incoming = backupItems(JSON.parse(await f.text()));
     snapshot('Imported');
     // merge by id, imported wins
     const byId = new Map(items.map(i => [i.id, i]));
-    for (const it of incoming) if (it && it.id && it.name) byId.set(it.id, it);
+    for (const it of incoming) byId.set(it.id, it);
     items = [...byId.values()];
     save(); render();
     toast('Brought in ' + incoming.length + ' things');

@@ -1,4 +1,4 @@
-const CACHE = 'ago-v2';
+const CACHE = 'ago-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {

@@ -237,7 +237,7 @@ function load() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
   catch { return []; }
 }
-function save() { localStorage.setItem(LS_KEY, JSON.stringify(items)); }
+function save(nextItems = items) { localStorage.setItem(LS_KEY, JSON.stringify(nextItems)); }
 function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 
 /* ============ time formatting ============ */
@@ -487,15 +487,18 @@ $('importFile').onchange = async e => {
   if (!f) return;
   try {
     const incoming = backupItems(JSON.parse(await f.text()));
-    snapshot('Imported');
     // merge by id, imported wins
     const byId = new Map(items.map(i => [i.id, i]));
     for (const it of incoming) byId.set(it.id, it);
-    items = [...byId.values()];
-    save(); render();
+    const nextItems = [...byId.values()];
+    try { save(nextItems); }
+    catch { toast('Device storage could not save this backup'); return; }
+    snapshot('Imported');
+    items = nextItems;
+    render();
     toast('Brought in ' + incoming.length + ' things');
   } catch { toast('That does not look like an Ago backup'); }
-  e.target.value = '';
+  finally { e.target.value = ''; }
 };
 $('aboutBtn').onclick = () => {
   $('menuDlg').close();

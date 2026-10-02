@@ -123,6 +123,30 @@ test('imported emoji markup stays literal text after import and reload', async t
   assert.equal((await stored(page))[0].history.length, 3);
 });
 
+test('a failed storage write leaves the current trackers and prior undo intact', async t => {
+  const { page } = await open(t);
+  const original = await stored(page);
+  await page.locator('.didit').click();
+  const beforeImport = await stored(page);
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    window.restoreStorageWrites = () => { Storage.prototype.setItem = setItem; };
+    Storage.prototype.setItem = () => { throw new DOMException('Storage is full', 'QuotaExceededError'); };
+  });
+  await importBackup(page, [item({ name: 'Rejected replacement' })]);
+  assert.equal(await page.locator('#toastMsg').textContent(), 'Device storage could not save this backup');
+  assert.deepEqual(await stored(page), beforeImport);
+  assert.equal(await page.locator('.name').textContent(), original[0].name);
+
+  await page.evaluate(() => window.restoreStorageWrites());
+  await page.locator('#undoBtn').click();
+  assert.deepEqual(await stored(page), original, 'failed import must preserve the previous undo');
+  await page.locator('.didit').click();
+  assert.equal((await stored(page))[0].name, original[0].name, 'rejected data must not land on a later save');
+  await page.reload();
+  assert.equal(await page.locator('.name').textContent(), original[0].name);
+});
+
 test('the repaired app remains usable offline after installation', async t => {
   const { page, context } = await open(t, [item()], 'allow');
   await page.evaluate(() => navigator.serviceWorker.ready);
